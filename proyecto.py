@@ -1,155 +1,317 @@
-#este programa se transformo a un juego
-#el profesor me dijo que si me puedo adelantar con cosas y que lo unico que se debe calificar es lo actual
 import time
-from concurrent.futures import ThreadPoolExecutor
-"""
-===========================definicion de variables globales======================================
-"""
-dinero = 20 
-yaSeParo=False
-dia=1
-"""
-======================================variables del reloj=======================================
-"""
+import threading
+import random
 
-t = 0
-h = int(t/100)
-m = t-(h*100)
+# Config
+INITIAL_MONEY = 20
+START_HOUR = 7
+START_MINUTE = 0
 
-"""
-==================================funciones relacionadas al reloj=======================================
-"""
-def reloj():
-   """
-   recibe las variables globales de t, h, m que representan tiempo total hora y minutos
-   hace que cuando los minutos llegan a 60 se añada una hora y no deja que las horas
-   llegen a 24, cada vez que se ejecuta se añade un minuto y se muestra la hora en formato
-   HH:MM
-   """
-   global t, h, m
-   while (h <= 23 and m < 61):
-       t = h * 100 + m
-       m=m+1  
-       if (m == 60):
-           m = 0
-           h = h+1
-       if (m<10 and h<10):
-           return("son las " + "0" + str(h) + ":" + "0" + str(m)) 
-       elif (m<10):
-           return("son las " + str(h) + ":" + "0" + str(m))
-       elif (h<10):
-           return("son las " + "0" + str(h) + ":" + str(m))
-       else:
-           return("son las " + str(h) + ":" + str(m)) 
-   if (h==24):
-    h=0
-    m=0
-def keepClockOn():
-    while (True):
-        """
-        esta funcione hace que se ejecute cada 5 segundos la funcion del reloj 
-        añadiendo un minuto de tiempo del juego a la hora
-        """
-        reloj()
+# Game state
+money = INITIAL_MONEY
+has_gotten_up = False
+is_ready_for_work = False
+day = 1
+
+# Clock state
+total_time = 0
+hour = int(total_time / 100)
+minute = total_time - hour * 100
+
+
+def clock():
+    """Return formatted game time and advance one minute."""
+    global total_time, hour, minute
+    if hour > 23:
+        hour = 0
+        minute = 0
+    total_time = hour * 100 + minute
+    minute += 1
+    if minute >= 60:
+        minute = 0
+        hour += 1
+    return f"it is {hour:02d}:{minute:02d}"
+
+
+def keep_clock_on():
+    """Background clock that ticks every 5 seconds."""
+    while True:
+        clock()
         time.sleep(5)
-"""
-=========================================funciones del juego===============================================
-"""
+
 
 def menu():
-    print ("bienvenido a")
-    print (" ____  __  _  _  _  _  __     __   ____   __  ____    ____  ____     ___  _  _   __   _  _  ____   __  ")
-    print (r"/ ___)(  )( \/ )/ )( \(  )   / _\ (    \ /  \(  _ \  (    \(  __)   / __)/ )( \ / _\ ( \/ )(  _ \ / _\ ")
-    print (r"\___ \ )( / \/ \) \/ (/ (_/\/    \ ) D ((  O ))   /   ) D ( ) _)   ( (__ ) __ (/    \/ \/ \ ) _ (/    \ ")
-    print (r"(____/(__)\_)(_/\____/\____/\_/\_/(____/ \__/(__\_)  (____/(____)   \___)\_)(_/\_/\_/\_)(_/(____/\_/\_/")
-    seleccion = int(input("Juego Nuevo(1)                       cargar juego(2)          " \
-    "       ver instrucciones(3) "))
-    if (seleccion == 1):
-                print ("cargando juego...")
-                time.sleep(1)
-                despertar()
-    while (seleccion != 1):       
-        if (seleccion == 3):
-            print("tienes que trabajar, el tiempo no para de correr entonces tienes que ir rapido" \
-            ", no te mueras de hambre y maneja bien tu dinero, el juego se acaba cuando te mueres" \
-            " como la vida real")
-            seleccion = int(input("juego nuevo(1)            cargar juego(2) "))
-        elif (seleccion == 2):
-            seleccion= int(input("esta opcion aun no esta disponible selecciona otra opcion "))
+    """Main menu. Welcome shown once."""
+    print("\nWelcome to")
+    print(r" _____ _                ___      _           _ __ _")
+    print(r"/__   \ |__   ___      / _ \_ __(_)_ __   __| / _(_)_ __ ___ ")
+    print(r"  / /\/ '_ \ / _ \    / /_\/ '__| | '_ \ / _` \ \| | '_ ` _ \ ")
+    print(r" / /  | | | |  __/   / /_\\| |  | | | | | (_| |\ \ | | | | | |")
+    print(r" \/   |_| |_|\___|   \____/|_|  |_|_| |_|\__,_\__/_|_| |_| |_|")
+    while True:
+        try:
+            choice = int(input("New Game(1)  Load Game(2)  Instructions(3) "))
+        except ValueError:
+            print("Invalid input")
+            continue
+        if choice == 1:
+            print("loading game...")
+            time.sleep(1)
+            wake_up()
+        elif choice == 3:
+            print("You have to work, time never stops. Move fast, don't starve, manage money.")
+        elif choice == 2:
+            print("This option is not available yet.")
         else:
-            seleccion = int(input("esa opcion no existe selecciona otra opcion"))
+            print("That option does not exist.")
 
 
-def despertar():
-    global t,h,m
-    print("tu alarma suena..." \
-    "vez el reloj y son las 7 de la mañana")
+def wake_up():
+    """Handle alarm choice and set initial time."""
+    global total_time, hour, minute
+    print("Your alarm rings... you look at the clock and it is 7 in the morning")
     time.sleep(1)
-    despertar = int(input("despertar(1)                     posponer(2) "))
-    if (despertar == 2):
-        print("pospones tu alarma 5 minutos y te quedas dormido")
-        time.sleep(2)
-        print("tu alarma sono pero no la escuchaste ahora son las 07:30 ")
-        t = 730
-        h=7
-        m=30
-        time.sleep(1)
-        apartamento()
-    elif (despertar == 1):
-        print ("despertaste a tiempo")
-        t = 700
-        h=7
-        m=0
-        time.sleep(1)
-        apartamento()     
+    while True:
+        try:
+            choice = int(input("wake up(1)  snooze(2) "))
+        except ValueError:
+            print("Invalid input")
+            continue
+        if choice == 1:
+            print("You woke up on time")
+            hour = START_HOUR
+            minute = START_MINUTE
+            total_time = hour * 100 + minute
+            time.sleep(1)
+            apartment()
+            return
+        elif choice == 2:
+            print("You snooze your alarm 5 minutes")
+            time.sleep(2)
+            print("Now it is 07:30")
+            hour = 7
+            minute = 30
+            total_time = 730
+            time.sleep(1)
+            apartment()
+            return
+        else:
+            print("That option does not exist.")
 
 
-def apartamento():
-    global yaSeParo
-    if (yaSeParo==False):
-        print("te paras de tu cama y  vez alrededor")
-        yaSeParo=True
+def apartment():
+    """Apartment interaction loop. Returns to caller on leave."""
+    global has_gotten_up
+    if not has_gotten_up:
+        print("You get up from your bed and look around")
+        has_gotten_up = True
     else:
-        print ("volviste al centro del apartamento")
+        print("You return to the apartment center")
     time.sleep(1)
-    accion = int(input("ver dinero (1)             ver hora(2)" \
-    "        ir al baño(3)           ir a cocina(4)          salir de apartamento(5) "))
-    if (accion == 3):
-        baño()
-    elif(accion == 4):
-        cocina()
-    elif(accion == 5):
-        calle()
-    while(accion!=3 or accion!=4 or accion!=5):
-        if (accion == 1):
-            print(dinero)
-            accion = int(input("ver dinero (1)             ver hora(2)" \
-                "        ir al baño(3)           ir a cocina(4)          salir de apartamento(5) "))
-        elif (accion == 2):
-           print(reloj())
-           accion = int(input("ver dinero (1)             ver hora(2)" \
-               "        ir al baño(3)           ir a cocina(4)          salir de apartamento(5) "))
+    while True:
+        try:
+            action = int(input("view money(1)  view time(2)  go to bathroom(3)  go to kitchen(4)  leave apartment(5) "))
+        except ValueError:
+            print("Invalid input")
+            continue
+        if action == 1:
+            print(money)
+        elif action == 2:
+            print(clock())
+        elif action == 3:
+            bathroom()
+        elif action == 4:
+            kitchen()
+        elif action == 5:
+            street()
+        else:
+            print("That option does not exist.")
 
 
-def baño():
-    print("esta parte aun no existe")
-def cocina():
-    print("esta parte aun no existe")
-def calle():
-    print("esta parte aun no existe")
+def bathroom():
+    """Bathroom actions. Allows getting ready for work."""
+    global is_ready_for_work
+    print("\nYou are in the bathroom.")
+    while True:
+        try:
+            choice = int(input("wash hands(1)  get ready for work(2)  leave(3) "))
+        except ValueError:
+            print("Invalid input")
+            continue
+        if choice == 1:
+            print("You wash your hands.")
+        elif choice == 2:
+            if is_ready_for_work:
+                print("You are already ready for work.")
+            else:
+                is_ready_for_work = True
+                print("You change clothes and get ready for work.")
+        elif choice == 3:
+            print("You leave the bathroom.")
+            return
+        else:
+            print("That option does not exist.")
 
-"""
-====================================parte para ejecutar las funciones del juego y las del reloj==============================
-"""
-#esta parte viene de stack overflow
-def run_io_tasks_in_parallel(tasks):
-    with ThreadPoolExecutor() as executor:
-        running_tasks = [executor.submit(task) for task in tasks]
-        for running_task in running_tasks:
-            running_task.result()
 
-#esta tambien
-run_io_tasks_in_parallel([
-    lambda: menu(),
-    lambda: keepClockOn(),
-])
+def kitchen():
+    """Kitchen placeholder."""
+    print("\nKitchen is not implemented yet.")
+    while True:
+        try:
+            inp = input("leave kitchen? y/n: ").lower().strip()
+        except:
+            continue
+        if inp == "y":
+            return
+        elif inp == "n":
+            print("You stay in the kitchen.")
+        else:
+            print("Invalid input")
+
+
+def street():
+    """Street actions. Bus costs money, walking requires minesweeper."""
+    global money
+    print("\nyou are out on the street")
+    while True:
+        try:
+            choice = int(input("go back to apartment(1)  take the bus(2)  go to job walking(3) "))
+        except ValueError:
+            print("Invalid input")
+            continue
+        if choice == 1:
+            return
+        elif choice == 2:
+            if money < 5:
+                print("Not enough money for the bus.")
+                continue
+            confirm = input("Bus costs 5 money. Are you sure? y/n: ").lower().strip()
+            if confirm == "y":
+                money -= 5
+                print(f"Bus paid. Money left: {money}")
+                city()
+            else:
+                print("You stay on the street.")
+            return
+        elif choice == 3:
+            print("You start walking. A small minefield blocks the path...")
+            if minesweeper_mini():
+                print("You made it to work on foot.")
+                city()
+            else:
+                print("You turn back to the street.")
+            return
+        else:
+            print("That option does not exist.")
+
+
+def print_board(board, revealed, rows, cols):
+    """Print the minesweeper board with fixed width columns."""
+    header = "   " + " ".join(f"{c:2}" for c in range(cols))
+    print("\n" + header)
+    for r in range(rows):
+        row_cells = []
+        for c in range(cols):
+            if not revealed[r][c]:
+                row_cells.append(" ?")
+            else:
+                val = board[r][c]
+                if val == -1:
+                    row_cells.append(" *")
+                else:
+                    row_cells.append(f"{val:2}")
+        print(f"{r:2} " + " ".join(row_cells))
+    print()
+
+
+def minesweeper_mini(rows=5, cols=5, mines=3):
+    """Mini minesweeper. First click is safe and zero cells flood fill."""
+    board = [[0 for _ in range(cols)] for _ in range(rows)]
+    revealed = [[False]*cols for _ in range(rows)]
+    first_click = True
+    safe_cells = rows*cols - mines
+    found = 0
+
+    print("\n--- Minesweeper Mini - Clear to get to work ---")
+    print("Enter row col from 0-4")
+
+    def place_mines(forbidden):
+        b = [[0 for _ in range(cols)] for _ in range(rows)]
+        placed = 0
+        while placed < mines:
+            r, c = random.randrange(rows), random.randrange(cols)
+            if (r, c) == forbidden or b[r][c] == -1:
+                continue
+            b[r][c] = -1
+            placed += 1
+        return b
+
+    while found < safe_cells:
+        print_board(board, revealed, rows, cols)
+        try:
+            r = int(input("row: "))
+            c = int(input("col: "))
+        except ValueError:
+            print("Invalid input")
+            continue
+        if not 0 <= r < rows or not 0 <= c < cols:
+            print("Out of bounds")
+            continue
+        if revealed[r][c]:
+            print("Already revealed")
+            continue
+
+        if first_click:
+            first_click = False
+            board = place_mines((r, c))
+            for i in range(rows):
+                for j in range(cols):
+                    if board[i][j] == -1:
+                        continue
+                    cnt = 0
+                    for dr in [-1,0,1]:
+                        for dc in [-1,0,1]:
+                            nr, nc = i+dr, j+dc
+                            if 0 <= nr < rows and 0 <= nc < cols and board[nr][nc] == -1:
+                                cnt += 1
+                    board[i][j] = cnt
+
+        stack = [(r, c)]
+        while stack:
+            cr, cc = stack.pop()
+            if revealed[cr][cc]:
+                continue
+            revealed[cr][cc] = True
+            if board[cr][cc] == -1:
+                print_board(board, revealed, rows, cols)
+                print("BOOM! You hit a mine.")
+                return False
+            if board[cr][cc] == 0:
+                for dr in [-1,0,1]:
+                    for dc in [-1,0,1]:
+                        nr, nc = cr+dr, cc+dc
+                        if 0 <= nr < rows and 0 <= nc < cols and not revealed[nr][nc]:
+                            stack.append((nr, nc))
+            found += 1
+
+        if found >= safe_cells:
+            print_board(board, revealed, rows, cols)
+            print("Cleared! You arrive at work safely.")
+            return True
+
+    print_board(board, revealed, rows, cols)
+    print("Cleared!")
+    return True
+
+
+def city():
+    """City placeholder. Pay depends on is_ready_for_work."""
+    global money, is_ready_for_work
+    print("\n--- CITY ---")
+    print("city not implemented yet")
+
+
+if __name__ == "__main__":
+    clock_thread = threading.Thread(target=keep_clock_on, daemon=True)
+    clock_thread.start()
+    menu()
